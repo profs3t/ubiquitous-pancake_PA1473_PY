@@ -2,7 +2,7 @@
 import sys
 import __init__
 
-def main():
+def main(): # Main method
     return 0
 
 if __name__ == '__main__':
