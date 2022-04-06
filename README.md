@@ -2,8 +2,8 @@
 
 ## Members of the group
 -- Replace with student information --
-* Adam Svensson adv@bth.se
-* Albin Persson alo@bth.se
+* Theodor Maran thma21@student.bth.se, theodor.maran@gmail.com
+* 
 
 ## Project Description
 -- Place a short description of the project so that the reader know what the goal of the repository is --
