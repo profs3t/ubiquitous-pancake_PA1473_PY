@@ -33,6 +33,7 @@ robot.settings(DRIVE_SPEED, 100, 50)
 PROPORTIONAL_GAIN = 1.2
 
 robotLen = 10 # MÄT!
+paletHeight = 10 # MÄT!
 
 # Color Values
 WHITE = 85
@@ -109,16 +110,23 @@ def pick_up_item(): #Picks up an item
     
     lift_motor.run_time(5, 5, Stop.HOLD, True)
 
-
 def check_pick_up():
     if touch_sensor.pressed() == False:
         ev3.screen.load_image('knocked_out.png')
         time.sleep(1)
 
+def pick_up_elevated():
+    # Lower lift!
+    
+    # Lift lift til pallet height
+
+    while touch_sensor.pressed() == False:
+        robot.straight(5)
+    
+    lift_motor.run_time(5, 5, Stop.HOLD, True)
+
 def main(): # Main method
     return 0
 
-
 if __name__ == '__main__':
     sys.exit(main())
-
