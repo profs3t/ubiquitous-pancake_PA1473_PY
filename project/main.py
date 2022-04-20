@@ -1,20 +1,24 @@
 #!/usr/bin/env pybricks-micropython
 import sys
 import __init__
+import math
+import time
 
 from pybricks import robotics
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, ColorSensor, UltrasonicSensor, TouchSensor
 from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.robotics import DriveBase
+from pybricks.media.ev3dev import ImageFile
 
 # Robot def
 ev3 = EV3Brick()
 
 # Motor def
-left_motor = Motor(Port.C)
-right_motor = Motor(Port.B)
-lift_motor = Motor(Port.A)
+left_motor = Motor(Port.C, Direction.COUNTERCLOCKWISE, gears = [12, 20])
+right_motor = Motor(Port.B, Direction.COUNTERCLOCKWISE, gears = [12, 20])
+lift_motor = Motor(Port.A, Direction.CLOCKWISE, gears = [12, 36])
+
 robot = DriveBase(left_motor, right_motor, wheel_diameter = 47, axle_track = 128)
 
 # Sensor def
@@ -28,6 +32,8 @@ TURN_RADIUS = 10
 robot.settings(DRIVE_SPEED, 100, 50)
 PROPORTIONAL_GAIN = 1.2
 
+robotLen = 10 # MÄT!
+
 # Color Values
 WHITE = 85
 BLACK = 9
@@ -38,7 +44,7 @@ BLACK = 9
 #PINK = 
 #GREEN = 
 
-find_color_list = [BLACK, WHITE, GREEN]
+find_color_list = [BLACK, WHITE]
 
 def path_find(find_color_list): #Follow a predetermened path
     use_color = color_sensor.reflection()
@@ -58,13 +64,56 @@ def path_find(find_color_list): #Follow a predetermened path
 
 
 def find_item():
-    distance = ultra_sensor.distance(silent=False)
-    
+    closestObj = 100000
+    degTurn = 360
+    for _ in range(72):
+        robot.turn(5)
+        distance = ultra_sensor.distance(silent=False)
+        if closestObj > distance:
+            closestObj = distance
 
+    minDistance = closestObj - 10
+    maxDistance = closestObj + 10
+
+    done = False
+    while done is False:
+        robot.turn(5)
+        degTurn -= 5
+        if minDistance < ultra_sensor.dictance(silent=False) < maxDistance:
+            hypotenuse = ultra_sensor.dictance(silent=False)
+            robot.turn(degTurn)
+            done = True
+
+    if degTurn != 180:
+        radTurn = math.radians(degTurn)
+        closeCathetus = abs(hypotenuse * math.cos(radTurn))
+        farCathetus = abs(hypotenuse * math.sin(radTurn))
+
+        robot.straight(closeCathetus)
+        if degTurn < 180:
+            robot.turn(-90)
+        elif degTurn > 180:
+            robot.turn(90)
+        robot.straight(farCathetus - robotLen)
+    else:
+        robot.drive(hypotenuse - robotLen)
+
+    pick_up_item()
 
 def pick_up_item(): #Picks up an item
     
+    # Lower lift!
+    
+    while touch_sensor.pressed() == False:
+        robot.straight(5)
+    
+    lift_motor.run_time(5, 5, Stop.HOLD, True)
 
+
+def check_pick_up():
+    if touch_sensor.pressed() == False:
+        ev3.screen.load_image('knocked_out.png')
+        time.sleep(1)
 
 def main(): # Main method
     return 0
