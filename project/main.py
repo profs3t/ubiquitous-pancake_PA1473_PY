@@ -29,16 +29,15 @@ touch_sensor = TouchSensor(Port.S1)
 # Constant Values
 DRIVE_SPEED = 60
 TURN_RADIUS = 10
-robot.settings(DRIVE_SPEED, 100, 50)
+#robot.settings(DRIVE_SPEED, 100, 50)
 PROPORTIONAL_GAIN = 1.2
 
-robotLen = 10 # MÄT!
-paletHeight = 10 # MÄT!
+robotLen = 150 # MÄT!
 
 # Color Values
-WHITE = 85
-BLACK = 9
-#RED = 
+WHITE = 89
+BLACK = 7
+RED = 88
 #BLUE = 
 #YELLOW = 
 #BROWN = 
@@ -102,13 +101,13 @@ def find_item():
     pick_up_item()
 
 def pick_up_item(): #Picks up an item
-    
-    # Lower lift!
-    
     while touch_sensor.pressed() == False:
         robot.straight(5)
     
-    lift_motor.run_time(5, 5, Stop.HOLD, True)
+    #lift_motor.run_time(5, 5, Stop.HOLD, True)
+    lift_motor.run_target(5, 15, Stop.HOLD, True)
+
+    check_pick_up()
 
 def check_pick_up():
     if touch_sensor.pressed() == False:
@@ -116,17 +115,30 @@ def check_pick_up():
         time.sleep(1)
 
 def pick_up_elevated():
-    # Lower lift!
-    
     # Lift lift til pallet height
+    lift_motor.run_target(5, 20, Stop.HOLD, True)
 
     while touch_sensor.pressed() == False:
         robot.straight(5)
     
-    lift_motor.run_time(5, 5, Stop.HOLD, True)
+    lift_motor.run_target(5, 15, Stop.HOLD, True)
+
+    check_pick_up()
+
+
+def checkLight():
+    lightLVL = color_sensor.reflection()
+    print(lightLVL)
+    return lightLVL
 
 def main(): # Main method
+    #lift_motor.reset()
+    pick_up_item()
+    #checkLight()
     return 0
 
-if __name__ == '__main__':
-    sys.exit(main())
+'''if __name__ == '__main__':
+    sys.exit(main())'''
+
+main()
+
