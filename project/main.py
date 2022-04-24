@@ -39,7 +39,7 @@ WHITE = 89
 BLACK = 7
 RED = 88
 #BLUE = 
-#YELLOW = 
+YELLOW = 11
 #BROWN = 
 #PINK = 
 #GREEN = 
@@ -47,14 +47,14 @@ RED = 88
 find_color_list = [BLACK, WHITE]
 
 def path_find(find_color_list): #Follow a predetermened path
-    use_color = color_sensor.reflection()
+    use_color = colorMix(color_sensor.rgb())
     threshold = (use_color + WHITE) / 2
     while len(find_color_list) > 1:
-        if color_sensor.reflection() == find_color_list[0]:
+        if color_sensor.rgb() == find_color_list[0]:
             find_color_list.pop(0)
             path_find(find_color_list)
         # Calculate the deviation from the threshold.
-        deviation = color_sensor.reflection() - threshold
+        deviation = colorMix(color_sensor.rgb()) - threshold
 
         # Calculate the turn rate.
         turn_rate = PROPORTIONAL_GAIN * deviation
@@ -62,7 +62,16 @@ def path_find(find_color_list): #Follow a predetermened path
         # Set the drive base speed and turn rate.
         robot.drive(DRIVE_SPEED, turn_rate)
 
+def colorMix(rgbColor):
+    color = 0
+    for i in rgbColor:
+        color += rgbColor[i]
+        #color = rgbColor[0] + rgbColor[1] + rgbColor[2]
+    return color
 
+
+
+"""
 def find_item():
     closestObj = 100000
     degTurn = 360
@@ -99,11 +108,23 @@ def find_item():
         robot.drive(hypotenuse - robotLen)
 
     pick_up_item()
+"""
+
+def find_item_red_or_blue():
+    use_color = YELLOW
+    threshold = (use_color + BLACK) / 2
+    while touch_sensor.pressed() == False:
+        # Calculate the deviation from the threshold.
+        deviation = colorMix(color_sensor.rgb()) - threshold
+
+        # Calculate the turn rate.
+        turn_rate = PROPORTIONAL_GAIN * deviation
+
+        # Set the drive base speed and turn rate.
+        robot.drive(DRIVE_SPEED, turn_rate)
+    
 
 def pick_up_item(): #Picks up an item
-    while touch_sensor.pressed() == False:
-        robot.straight(5)
-    
     #lift_motor.run_time(5, 5, Stop.HOLD, True)
     lift_motor.run_target(5, 15, Stop.HOLD, True)
 
@@ -132,13 +153,7 @@ def checkLight():
     return lightLVL
 
 def main(): # Main method
-    #lift_motor.reset()
-    pick_up_item()
-    #checkLight()
     return 0
 
-'''if __name__ == '__main__':
-    sys.exit(main())'''
-
-main()
-
+if __name__ == '__main__':
+    sys.exit(main())
