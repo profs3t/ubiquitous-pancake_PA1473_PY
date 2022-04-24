@@ -69,8 +69,6 @@ def colorMix(rgbColor):
         #color = rgbColor[0] + rgbColor[1] + rgbColor[2]
     return color
 
-
-
 """
 def find_item():
     closestObj = 100000
@@ -122,7 +120,24 @@ def find_item_red_or_blue():
 
         # Set the drive base speed and turn rate.
         robot.drive(DRIVE_SPEED, turn_rate)
-    
+
+def check_if_elevated_heavy():
+    lift_motor.run_time(5, 5, Stop.HOLD, True)
+    if lift_motor.angle() < 10:
+        pick_up_elevated()
+
+def check_if_elevated_sonic():
+    distance = ultra_sensor.distance(silent=False)
+    if distance >= 200:
+        robot.straight(-50)
+        pick_up_elevated()
+    else:
+        pick_up_item()
+
+def check_pick_up():
+    if touch_sensor.pressed() == False:
+        ev3.screen.load_image('knocked_out.png')
+        time.sleep(1)
 
 def pick_up_item(): #Picks up an item
     #lift_motor.run_time(5, 5, Stop.HOLD, True)
@@ -130,14 +145,11 @@ def pick_up_item(): #Picks up an item
 
     check_pick_up()
 
-def check_pick_up():
-    if touch_sensor.pressed() == False:
-        ev3.screen.load_image('knocked_out.png')
-        time.sleep(1)
-
 def pick_up_elevated():
     # Lift lift til pallet height
     lift_motor.run_target(5, 20, Stop.HOLD, True)
+    
+    robot.straight(50) #only if using with ultra sonic
 
     while touch_sensor.pressed() == False:
         robot.straight(5)
@@ -146,11 +158,10 @@ def pick_up_elevated():
 
     check_pick_up()
 
-
 def checkLight():
-    lightLVL = color_sensor.reflection()
+    lightLVL = color_sensor.rgb()
     print(lightLVL)
-    return lightLVL
+    time.sleep(1)
 
 def main(): # Main method
     return 0
