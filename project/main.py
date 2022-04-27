@@ -35,14 +35,15 @@ PROPORTIONAL_GAIN = 1.2
 robotLen = 150 # MÄT!
 
 # Color Values
-WHITE = 89
-BLACK = 7
-RED = 88
-#BLUE = 
-YELLOW = 11
-#BROWN = 
-#PINK = 
-#GREEN = 
+WHITE = ()
+BLACK = ()
+BLUE = ()
+MAGENTA = ()
+YELLOW = ()
+BROWN = ()
+PINK = ()
+GREEN = ()
+LIGHTGREEN = ()
 
 find_color_list = [BLACK, WHITE]
 
@@ -162,8 +163,10 @@ def checkLight():
     lightLVL = color_sensor.rgb()
     print(lightLVL)
     time.sleep(1)
+    return lightLVL
 
 def main(): # Main method
+    checkLight()
     return 0
 
 if __name__ == '__main__':
