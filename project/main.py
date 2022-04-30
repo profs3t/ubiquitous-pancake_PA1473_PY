@@ -46,13 +46,20 @@ GREEN = (22, 17, 18)
 LIGHTGREEN = (14, 35, 31)
 GREY = (9, 7, 18)
 
-#find_color_list = [BLACK, WHITE]
+has_pallet = False
+find_way_home = []
 
 def path_find(find_color_list): #Follow a predetermened path
     use_color = colorMix(color_sensor.rgb())
     threshold = (use_color + colorMix(WHITE)) / 2
     while len(find_color_list) > 1:
+        misplaced()
+        if has_pallet is True:
+            if check_pick_up() is False:
+                find_way_home.reversed()
+                path_find(find_way_home)
         if color_sensor.rgb() == find_color_list[1]:
+            find_way_home.append(find_color_list[0])
             find_color_list.pop(0)
             path_find(find_color_list)
         # Calculate the deviation from the threshold.
@@ -66,12 +73,10 @@ def path_find(find_color_list): #Follow a predetermened path
 
 def colorMix(rgbColor):
     color = 0
-    #for i in rgbColor:
-        #color += rgbColor[i]
     color = rgbColor[0] + rgbColor[1] + rgbColor[2]
     return color
 
-def find_item():
+def find_item(): #  follows line to pallet
     robot.straight(100)
     if color_sensor.rgb() == BROWN:
         turn = True
@@ -97,7 +102,7 @@ def find_item():
 
     check_if_elevated()
 
-def check_if_elevated():
+def check_if_elevated(): # checkes whether or not pallet is elevated or not
     lift_motor.run_time(50, 1000, Stop.HOLD, True)
     print('fist check', lift_motor.angle())
     if lift_motor.angle() < 40:
@@ -105,20 +110,22 @@ def check_if_elevated():
         robot.straight(-150)
         pick_up()
 
-def check_pick_up():
+def check_pick_up(): # checks whether or not the pallet is dropped
     if touch_sensor.pressed() == False:
-        #ev3.screen.load_image('knocked_out.png')
         print('droped pallet')
         time.sleep(1)
+        return False
+    else:
+        return True
 
-def pick_up_item(): #Picks up an item
+def pick_up_item(): #Test so picking up ite works
     lift_motor.run_time(50, 1000, Stop.HOLD, True)
     #lift_motor.run_target(500, 40, Stop.HOLD, True)
 
     #check_pick_up()
 
-def pick_up():
-    print('pick_up')
+def pick_up(): # pickes up pallet
+    has_pallet = True
     lift_motor.run_target(200, -10)
     lift_motor.run_target(200, 35, Stop.HOLD, True)
     
@@ -129,13 +136,23 @@ def pick_up():
     
     lift_motor.run_target(200, 55, Stop.HOLD, True)
     robot.straight(-200)
+    lift_motor.run_target(200 , 10, Stop.HOLD, True)
     check_pick_up()
+
+def misplaced(): # cehcks for misplaced items and drives around
+    if ultra_sensor.distance(silent=False) < 50 + robotLen:
+        robot.turn(90)
+        robot.straight(300) # Same
+        robot.turn(-90)
+        robot.straight(300) # lenght of pallet plus clearence
+        robot.turn(-90)
+        robot.stright(300) # Same
+        robot.turn(90)
 
 def main(): # Main method
     find_item()
     time.sleep(5)
     lift_motor.run_target(200, -10)
-    return 0
 
 if __name__ == '__main__':
     sys.exit(main())
