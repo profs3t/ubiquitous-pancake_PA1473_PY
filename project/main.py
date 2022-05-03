@@ -3,7 +3,7 @@ import sys
 #import __init__
 import math
 import time
-
+has_pallet = False
 from pybricks import robotics
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, ColorSensor, UltrasonicSensor, TouchSensor
@@ -35,30 +35,38 @@ PROPORTIONAL_GAIN = 0.8
 robotLen = 150 # MÄT!
 
 # Color Values
-WHITE = (95, 79, 100)
-BLACK = (8, 7, 14)
-BLUE = (14, 26, 70)
+WHITE = (41, 56, 81)
+BLACK = (3, 5, 4)
+BLUE = (7, 30, 54)
+DARKBLUE = (6, 20, 32)
 MAGENTA = (17, 12, 60)
-YELLOW = (80, 51, 19)
-BROWN = (18, 8, 17)
-PINK = (73, 31, 54)
-GREEN = (22, 17, 18)
-LIGHTGREEN = (14, 35, 31)
-GREY = (9, 7, 18)
+YELLOW = (33, 33, 4)
+BROWN = (8, 6, 6)
+PINK = (36, 14, 20)
+GREEN = (10, 12, 6)
+LIGHTGREEN = (5, 24, 8)
+GREY = (3, 5, 6)
 
-has_pallet = False
+
 find_way_home = []
+
 
 def path_find(find_color_list): #Follow a predetermened path
     use_color = colorMix(color_sensor.rgb())
     threshold = (use_color + colorMix(WHITE)) / 2
     while len(find_color_list) > 1:
-        misplaced()
+        print("has_pallet", has_pallet)
+        if has_pallet is False:
+            misplaced()
         if has_pallet is True:
             if check_pick_up() is False:
-                find_way_home.reversed()
-                path_find(find_way_home)
-        if color_sensor.rgb() == find_color_list[1]:
+                """find_way_home.reversed()
+                path_find(find_way_home)"""
+                ev3.screen.clear()
+                ev3.screen.draw_text(40, 50, 'DROPED')
+
+                time.sleep(3)
+        if colorMix(find_color_list[1]) - 5 <= colorMix(color_sensor.rgb()) <= colorMix(find_color_list[1]) + 5:
             find_way_home.append(find_color_list[0])
             find_color_list.pop(0)
             path_find(find_color_list)
@@ -78,12 +86,13 @@ def colorMix(rgbColor):
 
 def find_item(): #  follows line to pallet
     robot.straight(100)
-    if color_sensor.rgb() == BROWN:
-        turn = True
-        background = BROWN
-    elif color_sensor.rgb() == GREY:
+    
+    if color_sensor.rgb() == GREY:
         turn = False
         background = GREY
+    elif color_sensor.rgb() == BROWN:
+        turn = True
+        background = BROWN
 
     use_color = YELLOW
     threshold = (colorMix(use_color) + colorMix(background)) / 2
@@ -103,12 +112,16 @@ def find_item(): #  follows line to pallet
     check_if_elevated()
 
 def check_if_elevated(): # checkes whether or not pallet is elevated or not
+    has_pallet = True
     lift_motor.run_time(50, 1000, Stop.HOLD, True)
     print('fist check', lift_motor.angle())
     if lift_motor.angle() < 40:
         lift_motor.run_target(200, -10)
         robot.straight(-150)
         pick_up()
+    else:
+        lift_motor.run_target(200, -10)
+        lift_motor.run_target(200, 35, Stop.HOLD, True)
 
 def check_pick_up(): # checks whether or not the pallet is dropped
     if touch_sensor.pressed() == False:
@@ -125,7 +138,6 @@ def pick_up_item(): #Test so picking up ite works
     #check_pick_up()
 
 def pick_up(): # pickes up pallet
-    has_pallet = True
     lift_motor.run_target(200, -10)
     lift_motor.run_target(200, 35, Stop.HOLD, True)
     
@@ -137,22 +149,63 @@ def pick_up(): # pickes up pallet
     lift_motor.run_target(200, 55, Stop.HOLD, True)
     robot.straight(-200)
     lift_motor.run_target(200 , 10, Stop.HOLD, True)
-    check_pick_up()
+    #check_pick_up()
 
 def misplaced(): # cehcks for misplaced items and drives around
-    if ultra_sensor.distance(silent=False) < 50 + robotLen:
-        robot.turn(90)
-        robot.straight(300) # Same
-        robot.turn(-90)
-        robot.straight(300) # lenght of pallet plus clearence
-        robot.turn(-90)
-        robot.stright(300) # Same
-        robot.turn(90)
+    if ultra_sensor.distance(silent=False) == 326:
+        print("sees pallet")
+    elif ultra_sensor.distance(silent=False) < 350:
+        robot.stop()
+        ev3.screen.clear()
+        ev3.screen.draw_text(40, 50, 'misplaced item')
+        time.sleep(10)
+        ev3.screen.clear()
+        
+        
+        """
+        while ultra_sensor.distance(silent=False) < 350:
+            robot.turn(-10)
+        robot.turn(-30)
+        while True:
+            robot.drive(DRIVE_SPEED, 5)
+
+        print("exit sväng")
+        
+        robot.turn(120)
+        robot.straight(200) # Same
+        robot.turn(-120)
+        robot.straight(420) # lenght of pallet plus clearence
+        robot.turn(-120)
+        robot.straight(200) # Same
+        robot.turn(120)"""
+
+def checkDist():
+    while True:
+        distance = ultra_sensor.distance(silent=False)
+        ev3.screen.draw_text(40, 50, distance)
+        time.sleep(2)
+        ev3.screen.clear()
+
+def checkColor():
+    while True:
+        color = color_sensor.rgb()
+        ev3.screen.draw_text(40, 50, color)
+        time.sleep(3)
+        ev3.screen.clear()
 
 def main(): # Main method
-    find_item()
-    time.sleep(5)
-    lift_motor.run_target(200, -10)
+    #path_find([LIGHTGREEN, GREEN, PINK, BLACK])
+    #find_item()
+    #ev3.screen.clear()
+    #ev3.screen.draw_text(40, 50, 'pick up')
+    #time.sleep(15)
+    check_if_elevated()
+    path_find([BLACK, PINK, GREEN])
+    #lift_motor.run_target(200, -10)
+    #checkColor()
+
+def main2():
+    checkDist()
 
 if __name__ == '__main__':
     sys.exit(main())
