@@ -7,6 +7,7 @@ from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, ColorSensor, UltrasonicSensor, TouchSensor
 from pybricks.parameters import Port, Stop, Direction, Button, Color
 from pybricks.robotics import DriveBase
+#from ev3dev2.sensor.lego import ColorSensot
 
 # Robot def
 ev3 = EV3Brick()
@@ -28,28 +29,29 @@ DRIVE_SPEED = 20
 TURN_RADIUS = 10
 PROPORTIONAL_GAIN = 0.8
 
-# Color Values
-WHITE = (41, 56, 81)
+# RGB Color Values
+WHITE = (31, 39, 68)
 BLACK = (3, 5, 4)
-BLUE = (7, 30, 54)
+BLUE = (8, 35, 66)
 DARKBLUE = (6, 20, 32)
 MAGENTA = (17, 12, 60)
-YELLOW = (33, 33, 4)
-BROWN = (8, 6, 6)
-PINK = (36, 14, 20)
-GREEN = (10, 12, 6)
+YELLOW = (35, 37, 9)
+BROWN = (8, 7, 7)
+PINK = (38, 17, 24)
+GREEN = (11, 15, 9)
 LIGHTGREEN = (5, 24, 8)
-GREY = (3, 5, 6)
+GREY = (4, 6, 7)
 
 
-find_way_home = []
+pigVariation = 2
+find_way_home = [GREEN, BLUE, BLACK]
 
 hasPallet = False
 
-color_sensor.calibrate_white()
+#color_sensor.calibrate_white()
 
 def path_find(find_color_list): #Follow a predetermened path
-    use_color = colorMix(color_sensor.raw())
+    use_color = colorMix(color_sensor.rgb())
     threshold = (use_color + colorMix(WHITE)) / 2
     while len(find_color_list) > 1:
         print("hasPallet", hasPallet)
@@ -65,17 +67,18 @@ def path_find(find_color_list): #Follow a predetermened path
                 find_way_home.reversed()
                 path_find(find_way_home)
  
-        #if colorMix(find_color_list[1]) - 5 <= colorMix(color_sensor.raw()) <= colorMix(find_color_list[1]) + 5: # old, use ICE
+        #if colorMix(find_color_list[1]) - 5 <= colorMix(color_sensor.rgb()) <= colorMix(find_color_list[1]) + 5: # old, use ICE
             
-        if (find_color_list[1][0] - 2 <= color_sensor.raw()[0] <= find_color_list[1][0] + 2 and
-            find_color_list[1][1] - 2 <= color_sensor.raw()[1] <= find_color_list[1][1] + 2 and
-            find_color_list[1][2] - 2 <= color_sensor.raw()[2] <= find_color_list[1][2] + 2): # checks if the color seen by sensor is next color to follow
+        if (find_color_list[1][0] - pigVariation <= color_sensor.rgb()[0] <= find_color_list[1][0] + pigVariation and
+            find_color_list[1][1] - pigVariation <= color_sensor.rgb()[1] <= find_color_list[1][1] + pigVariation and
+            find_color_list[1][2] - pigVariation <= color_sensor.rgb()[2] <= find_color_list[1][2] + pigVariation):
+            # checks if the color seen by sensor is next color to follow
 
             find_way_home.append(find_color_list[0])
             find_color_list.pop(0)
             path_find(find_color_list)
         # Calculate the deviation from the threshold.
-        deviation = threshold - colorMix(color_sensor.raw())
+        deviation = threshold - colorMix(color_sensor.rgb())
 
         # Calculate the turn rate.
         turn_rate = PROPORTIONAL_GAIN * deviation
@@ -83,47 +86,49 @@ def path_find(find_color_list): #Follow a predetermened path
         # Set the drive base speed and turn rate.
         robot.drive(DRIVE_SPEED, turn_rate)
 
-def colorMix(rawColor):
+def colorMix(rgbColor):
     color = 0
-    color = rawColor[0] + rawColor[1] + rawColor[2]
+    color = rgbColor[0] + rgbColor[1] + rgbColor[2]
     return color
 
-def colorMix2(rawColor):
-    return rawColor[0] + rawColor[1] + rawColor[2]
+def colorMix2(rgbColor):
+    return rgbColor[0] + rgbColor[1] + rgbColor[2]
 
 def find_item(): #  follows line to pallet
     robot.straight(100) # drives forward to see background color of warehouse
     
-    if (GREY[1][0] - 2 <= color_sensor.raw()[0] <= GREY[1][0] + 2 and
-        GREY[1][1] - 2 <= color_sensor.raw()[1] <= GREY[1][1] + 2 and
-        GREY[1][2] - 2 <= color_sensor.raw()[2] <= GREY[1][2] + 2): # checks if background is grey or brown in warehouse
+    if (GREY[0] - pigVariation <= color_sensor.rgb()[0] <= GREY[0] + pigVariation and
+        GREY[1] - pigVariation <= color_sensor.rgb()[1] <= GREY[1] + pigVariation and
+        GREY[2] - pigVariation <= color_sensor.rgb()[2] <= GREY[2] + pigVariation):
+        # checks if background is grey or brown in warehouse
         turn = False
         background = GREY
-    elif (BROWN[1][0] - 2 <= color_sensor.raw()[0] <= BROWN[1][0] + 2 and
-        BROWN[1][1] - 2 <= color_sensor.raw()[1] <= BROWN[1][1] + 2 and
-        BROWN[1][2] - 2 <= color_sensor.raw()[2] <= BROWN[1][2] + 2): # checks if background is grey or brown in warehouse
+    elif (BROWN[0] - pigVariation <= color_sensor.rgb()[0] <= BROWN[0] + pigVariation and
+        BROWN[1] - pigVariation <= color_sensor.rgb()[1] <= BROWN[1] + pigVariation and
+        BROWN[2] - pigVariation <= color_sensor.rgb()[2] <= BROWN[2] + pigVariation):
+        # checks if background is grey or brown in warehouse
         turn = True
         background = BROWN
 
 
     # Old function used as backup
     """
-    if color_sensor.raw() == GREY:
+    if color_sensor.rgb() == GREY:
         turn = False
         background = GREY
-    elif color_sensor.raw() == BROWN:
+    elif color_sensor.rgb() == BROWN:
         turn = True
         background = BROWN
-    """
+    """    
 
     use_color = YELLOW
     threshold = (colorMix(use_color) + colorMix(background)) / 2
     while not touch_sensor.pressed():
         # Calculate the deviation from the threshold.
         if turn:
-            deviation = threshold - colorMix(color_sensor.raw())
+            deviation = threshold - colorMix(color_sensor.rgb())
         elif not turn:
-            deviation = colorMix(color_sensor.raw()) - threshold
+            deviation = colorMix(color_sensor.rgb()) - threshold
 
         # Calculate the turn rate.
         turn_rate = PROPORTIONAL_GAIN * deviation
@@ -134,6 +139,7 @@ def find_item(): #  follows line to pallet
     check_if_elevated()
 
 def check_if_elevated(): # checkes whether or not pallet is elevated or not
+    hasPallet = False
     hasPallet = not hasPallet
     lift_motor.run_time(50, 1000, Stop.HOLD, True)
     print('fist check', lift_motor.angle())
@@ -151,6 +157,7 @@ def check_if_elevated(): # checkes whether or not pallet is elevated or not
 
 def check_pick_up(): # checks whether or not the pallet is dropped
     if touch_sensor.pressed() == False:
+        hasPallet = True
         hasPallet = not hasPallet
         print('DROPED PALLET')
         time.sleep(1)
@@ -165,7 +172,7 @@ def pick_up_item(): #Test so picking up ite works
 def misplaced(): # checks for misplaced items
     if ultra_sensor.distance(silent=False) == 326:
         print("has pallet")
-    elif ultra_sensor.distance(silent=False) < 350:
+    elif ultra_sensor.distance(silent=False) < 10:
         robot.stop()
         ev3.screen.clear()
         ev3.screen.draw_text(40, 50, 'misplaced item')
@@ -199,13 +206,20 @@ def checkDist(): # test functions
 
 def checkColor(): # test functions
     while True:
-        color = color_sensor.raw()
+        color = color_sensor.rgb()
         ev3.screen.draw_text(40, 50, color)
         time.sleep(2)
         ev3.screen.clear()
 
 def main(): # Main method
-    return 0
+    #path_find([GREEN, BLUE, BLACK])
+    find_item()
+    time.sleep(10)
+    path_find([BLACK, BLUE, GREEN])
+
+
+def main2():
+    checkColor()
 
 if __name__ == '__main__':
     sys.exit(main())
