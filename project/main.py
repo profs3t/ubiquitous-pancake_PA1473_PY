@@ -5,11 +5,9 @@ import time
 from pybricks import robotics
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, ColorSensor, UltrasonicSensor, TouchSensor
-from pybricks.parameters import Port, Stop, Direction, Button, Color
+from pybricks.parameters import Port, Stop, Direction, Button
 from pybricks.robotics import DriveBase
-
 from os import system
-
 
 # Robot def
 ev3 = EV3Brick()
@@ -49,13 +47,12 @@ LIGHTGREEN = (5, 24, 8)
 GREY = (4, 6, 7)
 
 pigVariation = 2
-find_way_home = [GREEN, BLUE, BLACK]
-dropped_way = [GREEN, MAGENTA, BLACK]
 BlueWare = [GREEN, BLUE, BLACK]
 RedWare = [GREEN, PINK, BLACK]
 
 hasPallet = False
 background = None
+pickColor = None
 
 def path_find(find_color_list): #Follow a predetermened path
     global hasPallet
@@ -72,7 +69,6 @@ def path_find(find_color_list): #Follow a predetermened path
             print("Found", find_color_list[1])
             time.sleep(0.1)
 
-            find_way_home.append(find_color_list[0])
             find_color_list.pop(0)
             path_find(find_color_list)
 
@@ -81,11 +77,8 @@ def path_find(find_color_list): #Follow a predetermened path
 
         if hasPallet is True:
             if check_pick_up() is False: # checks if item has been dropped
-                robot.turn(180)
-                find_way_home.reverse()
-                path_find(find_way_home)
+                returnHome()
 
-        
         # Calculate the deviation from the threshold.
         deviation = threshold - colorMix(color_sensor.rgb())
 
@@ -99,6 +92,15 @@ def colorMix(rgbColor):
     color = 0
     color = rgbColor[0] + rgbColor[1] + rgbColor[2]
     return color
+
+def returnHome(): # returns home if pallet ios dropped
+    global pickColor
+    if pickColor == "red":
+        path_find([PINK, GREEN, MAGENTA, BLACK])
+    elif pickColor == "blue":
+        path_find([BLUE, GREEN, MAGENTA, BLACK])
+    else:
+        return 0
 
 def find_item(): #  follows line to pallet
     global background
@@ -173,29 +175,6 @@ def check_pick_up(): # checks whether or not the pallet is dropped
     else:
         return True
 
-def leave_area2():
-    global background
-    robot.turn(360)
-    """while not (WHITE[0] - pigVariation <= color_sensor.rgb()[0] <= WHITE[0] + pigVariation and
-            WHITE[1] - pigVariation <= color_sensor.rgb()[1] <= WHITE[1] + pigVariation and
-            WHITE[2] - pigVariation <= color_sensor.rgb()[2] <= WHITE[2] + pigVariation):"""
-    while not color_sensor.rgb() == colorMix(WHITE):
-        robot.straight(2)
-    if background == GREY:
-        while not (BLUE[0] - pigVariation <= color_sensor.rgb()[0] <= BLUE[0] + pigVariation and
-                BLUE[1] - pigVariation <= color_sensor.rgb()[1] <= BLUE[1] + pigVariation and
-                BLUE[2] - pigVariation <= color_sensor.rgb()[2] <= BLUE[2] + pigVariation):
-            robot.drive(DRIVE_SPEED, -10)
-    elif background == BROWN:
-        """while not (PINK[0] - pigVariation <= color_sensor.rgb()[0] <= PINK[0] + pigVariation and
-                PINK[1] - pigVariation <= color_sensor.rgb()[1] <= PINK[1] + pigVariation and
-                PINK[2] - pigVariation <= color_sensor.rgb()[2] <= PINK[2] + pigVariation):"""
-        while not color_sensor == colorMix(PINK):
-            robot.drive(DRIVE_SPEED, -10)
-
-    print("The robot has left the ", background," area")
-    time.sleep(0.1)
-
 def leave_area():
     global background
     print("leave area")
@@ -205,42 +184,29 @@ def leave_area():
         path_find([GREY, BLACK, BLUE])
     elif background == BROWN:
         path_find([BROWN, BLACK, PINK])
-
     print("The robot has left the ", background," area")
     time.sleep(0.1)
-    
 
 def misplaced(): # checks for misplaced items
-    #if ultra_sensor.distance(silent=False) == 326:
-        #print('Has pallet')
-    if ultra_sensor.distance(silent=False) < 100:
+    global hasPallet
+    if 350 < ultra_sensor.distance(silent=False) < 500:
         robot.stop()
-        print('Misplaced item')
+        print('Robot or item in path')
         time.sleep(0.1)
 
-
-def checkDist(): # test functions
-    while True:
-        distance = ultra_sensor.distance(silent=False)
-        ev3.screen.draw_text(40, 50, distance)
-        time.sleep(2)
-        ev3.screen.clear()
-
-def checkColor(): # test functions
+def checkColor(): # test functions, checks colors RGB values
     while True:
         color = color_sensor.rgb()
-        ev3.screen.draw_text(40, 50, color)
         print(color)
         time.sleep(2)
-        ev3.screen.clear()
 
 def change_pickup_color():
     while True:
         robot.stop()
-        pickColor = None
+        global pickColor
         commit = False
         print("Where do you wanna go?")
-        print("Left Red | Right Blue")
+        print("Left Red | Right Blue") #checks where to go to
         while commit is False:
             time.sleep(0.1)
             if rightButton in ev3.buttons.pressed():
@@ -255,11 +221,10 @@ def change_pickup_color():
                 pickColor = "red"
                 time.sleep(0.1)
                 path_find(RedWare)
-
         commit = False
         robot.stop()
         print("Do you wanna pick up", pickColor)
-        print("Left No | Right Yes")
+        print("Left No | Right Yes") #checks if to commit with the pick up or return
         while commit is False:
             time.sleep(0.1)
             if rightButton in ev3.buttons.pressed():
@@ -267,9 +232,13 @@ def change_pickup_color():
                 print("Pick up")
                 time.sleep(0.1)
                 find_item()
+                if pickColor == "blue": # returns to roundabout
+                    path_find([BLUE, GREEN])
+                elif pickColor == "red":
+                    path_find([PINK, GREEN])
             elif leftButton in ev3.buttons.pressed():
                 commit = True
-                print("Return")
+                print("Return") # returns to roundabout
                 time.sleep(0.1)
                 robot.turn(150)
                 if pickColor == "blue":
@@ -277,17 +246,8 @@ def change_pickup_color():
                 elif pickColor == "red":
                     path_find([PINK, GREEN])
 
-
 def main(): # Main method
-    #path_find([GREEN, BLUE, BLACK])
-    #find_item()
-    #time.sleep(10)
-    #path_find([BLACK, BLUE, GREEN])
     change_pickup_color()
-
-def main2():
-    checkColor()
-    return 0
 
 if __name__ == '__main__':
     sys.exit(main())
