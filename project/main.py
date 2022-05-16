@@ -27,34 +27,39 @@ touch_sensor = TouchSensor(Port.S1)
 # Buttons
 rightButton = Button.RIGHT
 leftButton = Button.LEFT
+upButton = Button.UP
+downButton = Button.DOWN
 
 # Constant Values
-DRIVE_SPEED = 20
+DRIVE_SPEED = 30
 TURN_RADIUS = 10
 PROPORTIONAL_GAIN = 0.8
 
 # RGB Color Values
-WHITE = (93, 80, 100)
-BLACK = (7, 7, 15)
-BLUE = (8, 35, 66)
-DARKBLUE = (6, 20, 32)
-MAGENTA = (17, 12, 60)
-YELLOW = (71, 47, 21)
-BROWN = (19, 9, 22)
-PINK = (96, 22, 54)
-GREEN = (22, 16, 21)
-LIGHTGREEN = (5, 24, 8)
-GREY = (4, 6, 7)
+WHITE = (69, 88, 100)
+BLACK = (5, 7, 9)
+BLUE = (13, 48, 100) #161
+MAGENTA = (12, 12, 44)
+YELLOW = (52, 51, 12)
+BROWN = (13, 9, 13)
+PINK = (58, 24, 43) #125
+GREEN = (17, 20, 15) #52
+LIGHTGREEN = (11, 55, 24)
+GREY = (6, 8, 15)
 
-pigVariation = 2
+color_list = [WHITE, BLACK, BLUE, MAGENTA, YELLOW, BROWN, PINK, GREEN, LIGHTGREEN, GREY]
+
+pigVariation = 4
 BlueWare = [GREEN, BLUE, BLACK]
 RedWare = [GREEN, PINK, BLACK]
+WareHouse = [GREEN, MAGENTA, BLACK]
+Deliver = [GREEN, LIGHTGREEN, BLACK]
 
 hasPallet = False
 background = None
 pickColor = None
 
-def path_find(find_color_list): #Follow a predetermened path
+def path_find(find_color_list, turn_bool): #Follow a predetermened path
     global hasPallet
     #find_color_list[0] = colorMix(color_sensor.rgb())
     threshold = (colorMix(find_color_list[0]) + colorMix(WHITE)) / 2
@@ -65,23 +70,27 @@ def path_find(find_color_list): #Follow a predetermened path
             find_color_list[1][2] - pigVariation <= color_sensor.rgb()[2] <= find_color_list[1][2] + pigVariation):
             # checks if the color seen by sensor is next color to follow
             
-            #print(f'Found {find_color_list[1]}')
             print("Found", find_color_list[1])
             time.sleep(0.1)
 
             find_color_list.pop(0)
-            path_find(find_color_list)
+            path_find(find_color_list, turn_bool)
 
-        if hasPallet is False: # checks for missplaced items
-            misplaced()
+        
+        '''
+        if hasPallet is False: # checks for missplaced items or robots
+            misplaced()'''
+        misplaced() # checks for missplaced items or robots
 
         if hasPallet is True:
             if check_pick_up() is False: # checks if item has been dropped
                 returnHome()
 
         # Calculate the deviation from the threshold.
-        deviation = threshold - colorMix(color_sensor.rgb())
-
+        if turn_bool:
+            deviation = threshold - colorMix(color_sensor.rgb())
+        elif not turn_bool:
+            deviation = colorMix(color_sensor.rgb()) - threshold
         # Calculate the turn rate.
         turn_rate = PROPORTIONAL_GAIN * deviation
 
@@ -96,14 +105,17 @@ def colorMix(rgbColor):
 def returnHome(): # returns home if pallet ios dropped
     global pickColor
     if pickColor == "red":
-        path_find([PINK, GREEN, MAGENTA, BLACK])
+        path_find([PINK, GREEN, MAGENTA, BLACK], True)
     elif pickColor == "blue":
-        path_find([BLUE, GREEN, MAGENTA, BLACK])
+        path_find([BLUE, GREEN, MAGENTA, BLACK], True)
+    elif pickColor == "deliver":
+        path_find([LIGHTGREEN, GREEN, MAGENTA, BLACK], True)
     else:
         return 0
 
 def find_item(): #  follows line to pallet
     global background
+    lift_motor.run_target(200, 0)
     robot.straight(150) # drives forward to see background color of warehouse
     robot.turn(-10)
     print('Checks the background color')
@@ -155,13 +167,14 @@ def check_if_elevated(): # checkes whether or not pallet is elevated or not
         robot.straight(150)
         lift_motor.run_target(200, 55, Stop.HOLD, True)
         robot.straight(-200)
-        lift_motor.run_target(200 , 55, Stop.HOLD, True)
+        #lift_motor.run_target(200, -10)
+        lift_motor.run_target(200 , 25, Stop.HOLD, True)
         leave_area()
     else:
         print('Picks up item')
         time.sleep(0.1)
-        lift_motor.run_target(200, -10)
-        lift_motor.run_target(200, 55, Stop.HOLD, True)
+        #lift_motor.run_target(200, -10)
+        lift_motor.run_target(200, 25, Stop.HOLD, True)
         leave_area()
 
 def check_pick_up(): # checks whether or not the pallet is dropped
@@ -179,20 +192,22 @@ def leave_area():
     global background
     print("leave area")
     time.sleep(0.1)
-    robot.turn(-250)
     if background == GREY:
-        path_find([GREY, BLACK, BLUE])
+        robot.turn(180)
+        robot.straight(200)
+        path_find([GREY, BLACK, BLUE], False)
     elif background == BROWN:
-        path_find([BROWN, BLACK, PINK])
+        robot.turn(-250)
+        path_find([BROWN, BLACK, PINK], True)
     print("The robot has left the ", background," area")
     time.sleep(0.1)
 
 def misplaced(): # checks for misplaced items
     global hasPallet
-    if 350 < ultra_sensor.distance(silent=False) < 500:
+    if 100 < ultra_sensor.distance(silent=False) < 350:
         robot.stop()
         print('Robot or item in path')
-        time.sleep(0.1)
+        time.sleep(1)
 
 def checkColor(): # test functions, checks colors RGB values
     while True:
@@ -207,6 +222,7 @@ def change_pickup_color():
         commit = False
         print("Where do you wanna go?")
         print("Left Red | Right Blue") #checks where to go to
+        print("Up Delivery | Down Warehouse")
         while commit is False:
             time.sleep(0.1)
             if rightButton in ev3.buttons.pressed():
@@ -214,13 +230,26 @@ def change_pickup_color():
                 print("Blue warehouse")
                 pickColor = "blue"
                 time.sleep(0.1)
-                path_find(BlueWare)
+                path_find(BlueWare, True)
             elif leftButton in ev3.buttons.pressed():
                 commit = True
                 print("RED warehouse")
                 pickColor = "red"
                 time.sleep(0.1)
-                path_find(RedWare)
+                path_find(RedWare, True)
+            elif upButton in ev3.buttons.pressed():
+                commit = True
+                print("Deliver and Pickup")
+                pickColor = "deliver"
+                time.sleep(0.1)
+                path_find(Deliver, True)
+            elif downButton in ev3.buttons.pressed():
+                commit = True
+                print("Warehouse")
+                pickColor = "warehouse"
+                time.sleep(0.1)
+                path_find(WareHouse, True)
+        
         commit = False
         robot.stop()
         print("Do you wanna pick up", pickColor)
@@ -232,22 +261,37 @@ def change_pickup_color():
                 print("Pick up")
                 time.sleep(0.1)
                 find_item()
+                time.sleep(0.1)
                 if pickColor == "blue": # returns to roundabout
-                    path_find([BLUE, GREEN])
+                    path_find([BLUE, GREEN], True)
                 elif pickColor == "red":
-                    path_find([PINK, GREEN])
+                    path_find([PINK, GREEN], True)
+                elif pickColor == "deliver":
+                    path_find([LIGHTGREEN, GREEN], True)
+                elif pickColor == "warehouse":
+                    path_find([MAGENTA, GREEN], True)
             elif leftButton in ev3.buttons.pressed():
                 commit = True
                 print("Return") # returns to roundabout
                 time.sleep(0.1)
                 robot.turn(150)
                 if pickColor == "blue":
-                    path_find([BLUE, GREEN])
+                    path_find([BLUE, GREEN, GREEN], True)
                 elif pickColor == "red":
-                    path_find([PINK, GREEN])
+                    path_find([PINK, GREEN, GREEN], True)
+                elif pickColor == "deliver":
+                    path_find([LIGHTGREEN, GREEN], True)
+                elif pickColor == "warehouse":
+                    path_find([MAGENTA, GREEN], True)
+                pickColor = None
 
 def main(): # Main method
+    lift_motor.reset_angle(0)
+    lift_motor.run_target(200, 15)
+    print(lift_motor.angle())
+    time.sleep(0.1)
     change_pickup_color()
+    #checkColor()
 
 if __name__ == '__main__':
     sys.exit(main())
